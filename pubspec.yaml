@@ -43,6 +43,8 @@ dependencies:
   http: ^0.13.5
   image_picker: ^0.8.7+4
   firebase_storage: ^11.1.1
+  bidi: ^2.0.6
+  firebase_messaging: ^14.6.3
   
   #geocoder: ^0.2.1
  # firebase_core:  

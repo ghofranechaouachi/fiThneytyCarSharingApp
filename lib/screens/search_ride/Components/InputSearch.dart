@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 
-import '../../../constants.dart';
 import '../../../size_config.dart';
 
 class InputDepart extends StatefulWidget {
@@ -12,43 +13,60 @@ class InputDepart extends StatefulWidget {
 
 class _InputDepartState extends State<InputDepart> {
   TextEditingController _searchController = TextEditingController();
-  List<String> _data = [
-    "New York City",
-    "Los Angeles",
-    "San Francisco",
-    "Seattle",
-    "Elderberry",
-    "Fig",
-    "Grapes",
-    "Honeydew",
-    "Jackfruit",
-    "Kiwi",
-    "Lemon",
-    "Mango",
-    "Nectarine",
-    "Orange",
-    "Papaya",
-    "Quince",
-    "Raspberry",
-    "Strawberry",
-    "Tangerine",
-    "Ugli Fruit",
-    "Watermelon",
-  ];
-  List<String> _filteredData = [];
+  List<Map<String, String>> _data = [];
+  List<Map<String, String>> _filteredData = [];
 
   @override
   void initState() {
     super.initState();
-    _filteredData.addAll(_data);
+    _getCurrentLocation();
+  }
+
+  void _getCurrentLocation() async {
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+    List<Placemark> placemarks = await placemarkFromCoordinates(
+      position.latitude,
+      position.longitude,
+    );
+
+    // TODO: Use the obtained position to sort placemarks by proximity
+    // and populate the _data list with the sorted placemarks.
+
+    setState(() {
+      print(position);
+      print(placemarks);
+      _data = [
+        {
+          'name': 'Sesame University',
+          'country': 'Technopole El Ghazela, Ariana El Soghra',
+        },
+        {
+          'name': 'Esprit School Of Business',
+          'country': 'Technopole El Ghazela, Ariana El Soghra',
+        },
+        ...placemarks.map((placemark) {
+          return {
+            'name': placemark.name.toString(),
+            'country': placemark.locality.toString() +
+                " " +
+                placemark.subLocality.toString() +
+                " " +
+                placemark.subAdministrativeArea.toString(),
+          };
+        }).toList()
+      ];
+      _filteredData.addAll(_data);
+    });
   }
 
   void _filterData(String query) {
-    List<String> filteredList = [];
+    List<Map<String, String>> filteredList = [];
     filteredList.addAll(_data);
     if (query.isNotEmpty) {
       filteredList.retainWhere(
-          (item) => item.toLowerCase().contains(query.toLowerCase()));
+          (item) => item['name']!.toLowerCase().contains(query.toLowerCase()));
     }
     setState(() {
       _filteredData.clear();
@@ -65,8 +83,6 @@ class _InputDepartState extends State<InputDepart> {
     setState(() {
       _searchController.text = selectedItem;
     });
-
-    Navigator.pop(context, _searchController.text);
   }
 
   @override
@@ -76,35 +92,28 @@ class _InputDepartState extends State<InputDepart> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.pop(context);
+            Navigator.pop(context, _searchController.text);
           },
         ),
-        title: Container(
-          width: SizeConfig.screenWidth,
-          decoration: BoxDecoration(
-            color: kSecondaryColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(15),
+        title: TextField(
+          controller: _searchController,
+          decoration: InputDecoration(
+            contentPadding: EdgeInsets.symmetric(
+                horizontal: getProportionateScreenWidth(20),
+                vertical: getProportionateScreenWidth(9)),
+            border: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            hintText: "Enter your starting point",
+            prefixIcon: Icon(Icons.search),
+            suffixIcon: _searchController.text.isNotEmpty
+                ? IconButton(
+                    icon: Icon(Icons.clear),
+                    onPressed: _clearSearch,
+                  )
+                : null,
           ),
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              contentPadding: EdgeInsets.symmetric(
-                  horizontal: getProportionateScreenWidth(20),
-                  vertical: getProportionateScreenWidth(9)),
-              border: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              hintText: "Enter your starting point",
-              prefixIcon: Icon(Icons.search),
-              suffixIcon: _searchController.text.isNotEmpty
-                  ? IconButton(
-                      icon: Icon(Icons.clear),
-                      onPressed: _clearSearch,
-                    )
-                  : null,
-            ),
-            onChanged: (query) => _filterData(query),
-          ),
+          onChanged: (query) => _filterData(query),
         ),
       ),
       body: ListView.builder(
@@ -112,7 +121,7 @@ class _InputDepartState extends State<InputDepart> {
         itemBuilder: (BuildContext context, int index) {
           final item = _filteredData[index];
           return Container(
-            margin: EdgeInsets.symmetric(horizontal: 60.0, vertical: 15.0),
+            margin: EdgeInsets.symmetric(horizontal: 35.0, vertical: 5.0),
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
@@ -122,20 +131,20 @@ class _InputDepartState extends State<InputDepart> {
             ),
             child: ListTile(
               title: Text(
-                item,
+                item['name']!,
                 style: TextStyle(
                   fontSize: 16.0,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               subtitle: Text(
-                "Item $index",
+                item['country']!,
                 style: TextStyle(
                   fontSize: 12.0,
                   color: Colors.grey[600],
                 ),
               ),
-              onTap: () => _onItemTap(item),
+              onTap: () => _onItemTap(item['name']!),
             ),
           );
         },

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../../../size_config.dart';
 
@@ -11,46 +13,83 @@ class SearchPosition extends StatefulWidget {
 
 class _SearchPositionState extends State<SearchPosition> {
   TextEditingController _searchController = TextEditingController();
-  List<String> _data = [    "New York City",   "Los Angeles",   "San Francisco", "Seattle",    "Elderberry",    "Fig",    "Grapes",    "Honeydew",    "Jackfruit",    "Kiwi",    "Lemon",    "Mango",    "Nectarine",    "Orange",    "Papaya",    "Quince",    "Raspberry",    "Strawberry",    "Tangerine",    "Ugli Fruit",    "Watermelon",  ];
-  List<String> _filteredData = [];
+  List<Map<String, String>> _data = [];
+  List<Map<String, String>> _filteredData = [];
 
   @override
   void initState() {
     super.initState();
-    _filteredData.addAll(_data);
+    _getCurrentLocation();
+  }
+
+  void _getCurrentLocation() async {
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+    List<Placemark> placemarks = await placemarkFromCoordinates(
+      position.latitude,
+      position.longitude,
+    );
+
+    // TODO: Use the obtained position to sort placemarks by proximity
+    // and populate the _data list with the sorted placemarks.
+
+    setState(() {
+      print(position);
+      print(placemarks);
+      _data = [
+        {
+          'name': 'Sesame University',
+          'country': 'Technopole El Ghazela, Ariana El Soghra',
+        },
+        {
+          'name': 'Esprit School Of Business',
+          'country': 'Technopole El Ghazela, Ariana El Soghra',
+        },
+        ...placemarks.map((placemark) {
+          return {
+            'name': placemark.name.toString(),
+            'country': placemark.locality.toString() +
+                " " +
+                placemark.subLocality.toString() +
+                " " +
+                placemark.subAdministrativeArea.toString(),
+          };
+        }).toList()
+      ];
+      _filteredData.addAll(_data);
+    });
   }
 
   void _filterData(String query) {
-    List<String> filteredList = [];
+    List<Map<String, String>> filteredList = [];
     filteredList.addAll(_data);
     if (query.isNotEmpty) {
-      filteredList.retainWhere((item) => item.toLowerCase().contains(query.toLowerCase()));
+      filteredList.retainWhere(
+          (item) => item['name']!.toLowerCase().contains(query.toLowerCase()));
     }
     setState(() {
       _filteredData.clear();
       _filteredData.addAll(filteredList);
     });
-
-   
   }
-   void _clearSearch() {
+
+  void _clearSearch() {
     _searchController.clear();
     _filterData("");
   }
-  
-  
+
   void _onItemTap(String selectedItem) {
     setState(() {
       _searchController.text = selectedItem;
     });
-    
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-         leading: IconButton(
+        leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
             Navigator.pop(context, _searchController.text);
@@ -73,7 +112,7 @@ class _SearchPositionState extends State<SearchPosition> {
                     onPressed: _clearSearch,
                   )
                 : null,
-            ),
+          ),
           onChanged: (query) => _filterData(query),
         ),
       ),
@@ -92,20 +131,20 @@ class _SearchPositionState extends State<SearchPosition> {
             ),
             child: ListTile(
               title: Text(
-                item,
+                item['name']!,
                 style: TextStyle(
                   fontSize: 16.0,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               subtitle: Text(
-                "Item $index",
+                item['country']!,
                 style: TextStyle(
                   fontSize: 12.0,
                   color: Colors.grey[600],
                 ),
               ),
-              onTap: ()=> _onItemTap(item),
+              onTap: () => _onItemTap(item['name']!),
             ),
           );
         },

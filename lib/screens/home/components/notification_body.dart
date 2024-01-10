@@ -3,11 +3,13 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 import '../../../models/NotificationItem.dart';
 
 class NotificationBody extends StatelessWidget {
   final List<NotificationItem> notifications;
+
   const NotificationBody({required this.notifications, Key? key})
       : super(key: key);
 
